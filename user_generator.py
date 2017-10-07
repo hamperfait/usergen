@@ -5,7 +5,13 @@ Created on Fri Oct  6 15:43:52 2017
 
 @author: hamperfait
 """
-
+"""
+options = [(trainingDateStart, testingDateStart, testingDateEnd, windowDateEnd, trainingDataSetSize,
+-                     samplingRate, config, 'SVM', [a, b, c], features)
+-                    for a, b, c in
+-                    itertools.product(['poly', 'rbf', 'sigmoid'], [True, False], [0.01, 0.02, 0.03, 0.04, 0.05])]
+-         options = options.__iter__()
+"""
 import argparse
 import os.path
 import string
@@ -29,11 +35,12 @@ parser.add_argument("-yr", "--year-range", help="Add a range of years that are t
 parser.add_argument("-d", "--digits", help="The number of digits that will be addded (1990 vs 90). Can also be used to add numbers from 0 to 9.", type=int, nargs='+', choices=[0,1,2,3,4], default=[0])
 
 # Misc
-parser.add_argument("-u", "--union", help="Select if you want a binding character [_ . - ] etc. Default is None. ", nargs='+', default=[""])
+parser.add_argument("-u1", "--union1", help="Select if you want a binding character [_ . - ] etc. between name and surname. Default is None. ", nargs='+', default=[""])
+parser.add_argument("-u2", "--union2", help="Select if you want a binding character [_ . - ] etc. between surname and year(if any). If no year is provided, we recommend to turn this off, since it will do NUFFIN. Default is None. ", nargs='+', default=[""])
 parser.add_argument("-o", "--output", help="If you want to specify the name of the output file. Default is... usernames!Yay!", default="usernames!Yay!.txt")
 parser.add_argument("-m", "--mode", help="If you want the results to be appended to the file or to overwrite. Default is overWrite.", choices=["a", "w"], default="w")
-parser.add_argument("-sO", "--switch-order", help="Choose if name and surname have to be switched",action="store_true" )
-parser.add_argument("-dX", "--delete-duplicates", help="Delete the duplicates in the file", action="store_true")
+parser.add_argument("-sO", "--switch-order", help="Choose if name and surname have to be switched", action='store_true', default=False)
+parser.add_argument("-dX", "--delete-duplicates", help="Delete the duplicates in the file", action="store_true", default=True)
 
 results = parser.parse_args()
 print(results)
@@ -71,16 +78,17 @@ def main(namesPath, surnamesPath):
             for surname in surnames:
                 for namechars in range(results.min_chars_N, results.max_chars_N+1):
                     for surnamechars in range(results.min_chars_S, results.max_chars_S+1):
-                        for union in results.union:
+                        for union1 in results.union1:
                             for digits in results.digits:
-                                if results.year_range is not None:
-                                    for year in range(results.year_range[0], results.year_range[1]):
-                                        usernames.write("%s%s%s%d\n" % (name[:min(len(name), namechars)].lower(), union, surname[:min(len(surname), surnamechars)].lower(), year))
-                                elif results.year is not None:
-                                    for year in results.year:
-                                        usernames.write("%s%s%s%d\n" % (name[:min(len(name), namechars)].lower(), union, surname[:min(len(surname), surnamechars)].lower(), year))
-                                else:
-                                    usernames.write("%s%s%s\n" % (name[:min(len(name), namechars)].lower(), union, surname[:min(len(surname), surnamechars)].lower()))
+                                for union2 in results.union2:
+                                    if results.year_range is not None:
+                                        for year in range(results.year_range[0], results.year_range[1]):
+                                            usernames.write("%s%s%s%s%d\n" % (name[:min(len(name), namechars)].lower(), union1, surname[:min(len(surname), surnamechars)].lower(), union2, year))
+                                    elif results.year is not None:
+                                        for year in results.year:
+                                            usernames.write("%s%s%s%s%d\n" % (name[:min(len(name), namechars)].lower(), union1, surname[:min(len(surname), surnamechars)].lower(), union2, year))
+                                    else:
+                                        usernames.write("%s%s%s\n" % (name[:min(len(name), namechars)].lower(), union1, surname[:min(len(surname), surnamechars)].lower()))
         try:
             names.close()
             surnames.close()
@@ -88,6 +96,7 @@ def main(namesPath, surnamesPath):
             pass
 if __name__ == "__main__":
     if results.switch_order:
+        print(True)
         names = results.Surnames
         surnames = results.Names
     else:
