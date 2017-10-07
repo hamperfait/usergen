@@ -32,17 +32,17 @@ parser.add_argument("-d", "--digits", help="The number of digits that will be ad
 parser.add_argument("-u", "--union", help="Select if you want a binding character [_ . - ] etc. Default is None. ", nargs='+', default=[""])
 parser.add_argument("-o", "--output", help="If you want to specify the name of the output file. Default is... usernames!Yay!", default="usernames!Yay!.txt")
 parser.add_argument("-m", "--mode", help="If you want the results to be appended to the file or to overwrite. Default is overWrite.", choices=["a", "w"], default="w")
-parser.add_argument("--order", help="Choose wheter name goes first or second", type=int, choices=[1,2])
-parser.add_argument("-dX", "--delete-duplicates", help="Delete the duplicates in the file")
+parser.add_argument("-sO", "--switch-order", help="Choose if name and surname have to be switched",action="store_true" )
+parser.add_argument("-dX", "--delete-duplicates", help="Delete the duplicates in the file", action="store_true")
 
 results = parser.parse_args()
 print(results)
 
-def check_files():
-    if results.Names and not os.path.isfile(results.Names):
+def check_files(names, surnames):
+    if names and not os.path.isfile(names):
         print("We're sorry. We didn't find the file in the specified directory. And we're NOT going to generate it for you ;)")
         sys.exit()
-    if not results.Surnames is not None and os.path.isfile(results.Surnames):
+    if not surnames is not None and os.path.isfile(surnames):
         print("We're sorry. Didn't we say the Surnames file actually must exist? We might have forgotten, sorry...")
         sys.exit()
 
@@ -55,32 +55,46 @@ def delete_duplicates():
                     outfile.write(line)
                     lines_seen.add(line)
     
-def main():
+def main(namesPath, surnamesPath):
     with open(results.output, results.mode.lower()) as usernames:
         try:
-            names = open(results.Names, 'r')
+            names = open(namesPath, 'r')
         except IOError:
-            print("We can only work with initials, not a file!")
+            print("We will only work with initials, no file.")
             names=list(string.ascii_lowercase)
             pass
         for name in names:
-            with open(results.Surnames, 'r') as surnames:
-                for surname in surnames:
-                    for namechars in range(results.min_chars_N, results.max_chars_N+1):
-                        for surnamechars in range(results.min_chars_S, results.max_chars_S+1):
-                            for union in results.union:
-                                for digits in results.digits:
-                                    if results.year_range is not None:
-                                        for year in range(results.year_range[0], results.year_range[1]):
-                                            usernames.write("%s%s%s%d\n" % (name[:min(len(name), namechars)].lower(), union, surname[:min(len(surname), surnamechars)].lower(), year))
-                                    elif results.year is not None:
-                                        for year in results.year:
-                                            usernames.write("%s%s%s%d\n" % (name[:min(len(name), namechars)].lower(), union, surname[:min(len(surname), surnamechars)].lower(), year))
-                                    else:
-                                        usernames.write("%s%s%s\n" % (name[:min(len(name), namechars)].lower(), union, surname[:min(len(surname), surnamechars)].lower()))
+            try:
+                surnames = open(surnamesPath, 'r')
+            except IOError:
+                surnames = list(string.ascii_lowercase)
+            for surname in surnames:
+                for namechars in range(results.min_chars_N, results.max_chars_N+1):
+                    for surnamechars in range(results.min_chars_S, results.max_chars_S+1):
+                        for union in results.union:
+                            for digits in results.digits:
+                                if results.year_range is not None:
+                                    for year in range(results.year_range[0], results.year_range[1]):
+                                        usernames.write("%s%s%s%d\n" % (name[:min(len(name), namechars)].lower(), union, surname[:min(len(surname), surnamechars)].lower(), year))
+                                elif results.year is not None:
+                                    for year in results.year:
+                                        usernames.write("%s%s%s%d\n" % (name[:min(len(name), namechars)].lower(), union, surname[:min(len(surname), surnamechars)].lower(), year))
+                                else:
+                                    usernames.write("%s%s%s\n" % (name[:min(len(name), namechars)].lower(), union, surname[:min(len(surname), surnamechars)].lower()))
+        try:
+            names.close()
+            surnames.close()
+        except:
+            pass
 if __name__ == "__main__":
-    check_files()
-    main()
+    if results.switch_order:
+        names = results.Surnames
+        surnames = results.Names
+    else:
+        names=results.Names
+        surnames=results.Surnames
+    check_files(names, surnames)
+    main(names, surnames)
     if results.delete_duplicates:
         if sys.platform == "linux" or sys.platform == "linux2":
             subprocess.call("sort %s | uniq > %s" % (results.output, "temp.txt"), shell = True)
